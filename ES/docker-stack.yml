@@ -1,0 +1,166 @@
+version: "3.8"
+
+services:
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    hostname: es01.${CLIENT_DOMAIN}
+    networks:
+      - es_net
+    volumes:
+      - ${ES01_DATA}:/usr/share/elasticsearch/data
+      - ${CERTS_DIR}:/usr/share/elasticsearch/config/certs:ro
+      - ${ES_BACKUP}:/usr/share/elasticsearch/backups
+    ports:
+      - target: 9200
+        published: ${ES_PORT}
+        protocol: tcp
+        mode: host
+    environment:
+      - node.name=es01.${CLIENT_DOMAIN}
+      - node.roles=master,ingest,remote_cluster_client
+      - cluster.name=${CLUSTER_NAME}
+      - discovery.seed_hosts=es01.${CLIENT_DOMAIN},es02.${CLIENT_DOMAIN},es03.${CLIENT_DOMAIN}
+      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      - path.repo=/usr/share/elasticsearch/backups
+      - bootstrap.memory_lock=false
+      - indices.query.bool.max_clause_count=2048
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/privkey.pem
+      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.http.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certs/privkey.pem
+      - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.transport.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=${LICENSE}
+      - ES_JAVA_OPTS=${ES01_JAVA_OPTS}
+      - TZ=${TZ}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.hostname == ${SWARM_HOSTNAME}
+      resources:
+        limits:
+          memory: ${ES01_MEM_LIMIT}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+
+  es02:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    hostname: es02.${CLIENT_DOMAIN}
+    networks:
+      - es_net
+    volumes:
+      - ${ES02_DATA}:/usr/share/elasticsearch/data
+      - ${CERTS_DIR}:/usr/share/elasticsearch/config/certs:ro
+      - ${ES_BACKUP}:/usr/share/elasticsearch/backups
+    environment:
+      - node.name=es02.${CLIENT_DOMAIN}
+      - node.roles=master,data,remote_cluster_client
+      - cluster.name=${CLUSTER_NAME}
+      - discovery.seed_hosts=es01.${CLIENT_DOMAIN},es02.${CLIENT_DOMAIN},es03.${CLIENT_DOMAIN}
+      - path.repo=/usr/share/elasticsearch/backups
+      - bootstrap.memory_lock=false
+      - indices.query.bool.max_clause_count=2048
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/privkey.pem
+      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.http.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certs/privkey.pem
+      - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.transport.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=${LICENSE}
+      - ES_JAVA_OPTS=${ES02_JAVA_OPTS}
+      - TZ=${TZ}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.hostname == ${SWARM_HOSTNAME}
+      resources:
+        limits:
+          memory: ${ES02_MEM_LIMIT}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+
+  es03:
+    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    hostname: es03.${CLIENT_DOMAIN}
+    networks:
+      - es_net
+    volumes:
+      - ${ES03_DATA}:/usr/share/elasticsearch/data
+      - ${CERTS_DIR}:/usr/share/elasticsearch/config/certs:ro
+      - ${ES_BACKUP}:/usr/share/elasticsearch/backups
+    environment:
+      - node.name=es03.${CLIENT_DOMAIN}
+      - node.roles=master,data,remote_cluster_client
+      - cluster.name=${CLUSTER_NAME}
+      - discovery.seed_hosts=es01.${CLIENT_DOMAIN},es02.${CLIENT_DOMAIN},es03.${CLIENT_DOMAIN}
+      - path.repo=/usr/share/elasticsearch/backups
+      - bootstrap.memory_lock=false
+      - indices.query.bool.max_clause_count=2048
+      - xpack.security.enabled=true
+      - xpack.security.http.ssl.enabled=true
+      - xpack.security.http.ssl.key=/usr/share/elasticsearch/config/certs/privkey.pem
+      - xpack.security.http.ssl.certificate=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.http.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.http.ssl.verification_mode=certificate
+      - xpack.security.transport.ssl.enabled=true
+      - xpack.security.transport.ssl.key=/usr/share/elasticsearch/config/certs/privkey.pem
+      - xpack.security.transport.ssl.certificate=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.transport.ssl.certificate_authorities=/usr/share/elasticsearch/config/certs/fullchain.pem
+      - xpack.security.transport.ssl.verification_mode=certificate
+      - xpack.license.self_generated.type=${LICENSE}
+      - ES_JAVA_OPTS=${ES03_JAVA_OPTS}
+      - TZ=${TZ}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      placement:
+        constraints:
+          - node.hostname == ${SWARM_HOSTNAME}
+      resources:
+        limits:
+          memory: ${ES03_MEM_LIMIT}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'"]
+      interval: 15s
+      timeout: 10s
+      retries: 60
+
+networks:
+  es_net:
+    driver: overlay
+    attachable: true
