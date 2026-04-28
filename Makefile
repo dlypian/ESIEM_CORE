@@ -1,0 +1,108 @@
+SHELL := /bin/bash
+.ONESHELL:
+.DEFAULT_GOAL := help
+
+ENV_FILE := .env
+STACK_NAME := ESIEM_CORE_ES
+NETWORK_NAME := ESIEM_Network
+
+ES_BOOTSTRAP_STACK := ES/docker-stack.bootstrap.yml
+ES_STACK := ES/docker-stack.yml
+
+include $(ENV_FILE)
+export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE))
+
+ES_URL := https://localhost:9200
+
+.PHONY: help check-env network validate bootstrap up wait health nodes shards down ps logs clean-history
+
+help:
+	@echo "Targets:"
+	@echo "  make check-env      - verify .env exists"
+	@echo "  make network        - create shared overlay network if missing"
+	@echo "  make validate       - validate ES stack files"
+	@echo "  make bootstrap      - deploy ES bootstrap stack for first cluster creation"
+	@echo "  make up             - deploy normal ES stack"
+	@echo "  make wait           - wait for ES API to respond"
+	@echo "  make health         - show cluster health"
+	@echo "  make nodes          - show node list"
+	@echo "  make shards         - show shard allocation"
+	@echo "  make ps             - show swarm tasks for the ES stack"
+	@echo "  make logs           - tail logs for es01"
+	@echo "  make down           - remove the ES stack"
+	@echo "  make clean-history  - remove ES stack and bring it back with normal stack"
+
+check-env:
+	@if [[ ! -f "$(ENV_FILE)" ]]; then
+		echo "Missing $(ENV_FILE)"
+		exit 1
+	fi
+	@echo "Using $(ENV_FILE)"
+
+network: check-env
+	@if ! docker network inspect $(NETWORK_NAME) >/dev/null 2>&1; then
+		docker network create --driver overlay --attachable $(NETWORK_NAME)
+		echo "Created network $(NETWORK_NAME)"
+	else
+		echo "Network $(NETWORK_NAME) already exists"
+	fi
+
+validate: check-env
+	docker compose --env-file $(ENV_FILE) -f $(ES_BOOTSTRAP_STACK) config >/dev/null
+	docker compose --env-file $(ENV_FILE) -f $(ES_STACK) config >/dev/null
+	@echo "ES stack files validate cleanly"
+
+bootstrap: check-env network validate
+	set -a
+	source $(ENV_FILE)
+	set +a
+	docker stack deploy -c $(ES_BOOTSTRAP_STACK) $(STACK_NAME)
+
+up: check-env network validate
+	set -a
+	source $(ENV_FILE)
+	set +a
+	docker stack deploy -c $(ES_STACK) $(STACK_NAME)
+
+wait: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	echo "Waiting for Elasticsearch on $(ES_URL) ..."
+	until curl -k -s -u elastic:$$ELASTIC_PASSWORD $(ES_URL) >/dev/null 2>&1; do
+		sleep 5
+	done
+	echo "Elasticsearch is responding"
+
+health: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	curl -k -u elastic:$$ELASTIC_PASSWORD $(ES_URL)/_cluster/health?pretty
+
+nodes: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	curl -k -u elastic:$$ELASTIC_PASSWORD $(ES_URL)/_cat/nodes?v
+
+shards: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	curl -k -u elastic:$$ELASTIC_PASSWORD $(ES_URL)/_cat/shards?v
+
+ps:
+	docker stack services $(STACK_NAME) || true
+	echo
+	docker stack ps $(STACK_NAME) || true
+
+logs:
+	docker service logs $(STACK_NAME)_es01 --tail 100 -f
+
+down:
+	docker stack rm $(STACK_NAME)
+
+clean-history: down
+	sleep 10
+	$(MAKE) up
