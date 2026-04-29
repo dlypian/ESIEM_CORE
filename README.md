@@ -10,3 +10,21 @@ The Elasticsearch stack lives in:
 ES/
   docker-stack.bootstrap.yml
   docker-stack.yml
+
+
+## Bootstrap
+
+make network
+make validate
+make bootstrap
+make wait
+make health
+make up
+make wait
+make health
+
+## Normal Start
+
+make up
+make wait
+make health
