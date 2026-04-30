@@ -9,12 +9,14 @@ NETWORK_NAME := ESIEM_Network
 ES_BOOTSTRAP_STACK := ES/docker-stack.bootstrap.yml
 ES_STACK := ES/docker-stack.yml
 
+
 include $(ENV_FILE)
 export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE))
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate bootstrap up wait health nodes shards down ps logs clean-history
+
+.PHONY: help check-env network validate bootstrap up wait health nodes shards down ps logs clean-history vault-vars
 
 help:
 	@echo "Targets:"
@@ -106,3 +108,23 @@ down:
 clean-history: down
 	sleep 10
 	$(MAKE) up
+
+vault-vars: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	@if [[ -z "$$VAULT_ADDR" ]]; then
+		echo "Missing VAULT_ADDR in $(ENV_FILE)"
+		exit 1
+	fi
+	@if [[ -z "$$VAULT_TOKEN" ]]; then
+		echo "Missing VAULT_TOKEN in $(ENV_FILE)"
+		exit 1
+	fi
+	@if [[ -z "$$VAULT_SECRET_PATH" ]]; then
+		echo "Missing VAULT_SECRET_PATH in $(ENV_FILE)"
+		exit 1
+	fi
+	curl -s \
+	  -H "X-Vault-Token: $$VAULT_TOKEN" \
+	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH" | jq '.data.data'
