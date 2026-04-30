@@ -33,7 +33,8 @@ help:
 	@echo "  make logs           - tail logs for es01"
 	@echo "  make down           - remove the ES stack"
 	@echo "  make clean-history  - remove ES stack and bring it back with normal stack"
-
+	@echo "  make vault-vars     - pull and print variables from Vault"
+	
 check-env:
 	@if [[ ! -f "$(ENV_FILE)" ]]; then
 		echo "Missing $(ENV_FILE)"
