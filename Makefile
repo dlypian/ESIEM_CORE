@@ -126,6 +126,6 @@ vault-vars: check-env
 		echo "Missing VAULT_SECRET_PATH in $(ENV_FILE)"
 		exit 1
 	fi
-	curl -s \
+	python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["data"]["data"], indent=2))' < <(curl -s \
 	  -H "X-Vault-Token: $$VAULT_TOKEN" \
-	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH" | jq '.data.data'
+	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH")
