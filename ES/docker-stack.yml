@@ -61,7 +61,7 @@ services:
       retries: 60
 
   es02:
-  image: esiem/elasticsearch-vault:${STACK_VERSION} 
+    image: esiem/elasticsearch-vault:${STACK_VERSION} 
     hostname: es02.${CLIENT_DOMAIN}
     networks:
       - ESIEM_Network
