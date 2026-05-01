@@ -16,12 +16,14 @@ services:
         protocol: tcp
         mode: host
     environment:
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
       - node.name=es01.${CLIENT_DOMAIN}
       - node.roles=master,ingest,remote_cluster_client
       - cluster.name=${CLUSTER_NAME}
       - discovery.seed_hosts=es01.${CLIENT_DOMAIN},es02.${CLIENT_DOMAIN},es03.${CLIENT_DOMAIN}
       - cluster.initial_master_nodes=es01.${CLIENT_DOMAIN},es02.${CLIENT_DOMAIN},es03.${CLIENT_DOMAIN}
-      - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
       - path.repo=/usr/share/elasticsearch/backups
       - bootstrap.memory_lock=false
       - indices.query.bool.max_clause_count=2048
@@ -69,6 +71,9 @@ services:
       - ${CERTS_DIR}:/usr/share/elasticsearch/config/certs:ro
       - ${ES_BACKUP}:/usr/share/elasticsearch/backups
     environment:
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
       - node.name=es02.${CLIENT_DOMAIN}
       - node.roles=master,data,remote_cluster_client
       - cluster.name=${CLUSTER_NAME}
@@ -121,6 +126,9 @@ services:
       - ${CERTS_DIR}:/usr/share/elasticsearch/config/certs:ro
       - ${ES_BACKUP}:/usr/share/elasticsearch/backups
     environment:
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
       - node.name=es03.${CLIENT_DOMAIN}
       - node.roles=master,data,remote_cluster_client
       - cluster.name=${CLUSTER_NAME}

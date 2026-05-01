@@ -72,7 +72,7 @@ up: check-env network validate es-build
 	source $(ENV_FILE)
 	set +a
 	docker stack deploy -c $(ES_STACK) $(STACK_NAME)
-	
+
 bootstrap-from-vault: check-env network validate
 	set -a
 	source $(ENV_FILE)
@@ -203,4 +203,17 @@ es-build: check-env
 	docker build \
 	  --build-arg STACK_VERSION=$$STACK_VERSION \
 	  -t $(ES_IMAGE) \
+	  -f ES/Dockerfile .
+
+es-build: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	@if [[ -z "$$STACK_VERSION" ]]; then
+		echo "Missing STACK_VERSION in $(ENV_FILE)"
+		exit 1
+	fi
+	docker build \
+	  --build-arg STACK_VERSION=$$STACK_VERSION \
+	  -t esiem/elasticsearch-vault:$$STACK_VERSION \
 	  -f ES/Dockerfile .
