@@ -196,14 +196,6 @@ vault-vars: check-env
 	  -H "X-Vault-Token: $$VAULT_TOKEN" \
 	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH")
 
-es-build: check-env
-	set -a
-	source $(ENV_FILE)
-	set +a
-	docker build \
-	  --build-arg STACK_VERSION=$$STACK_VERSION \
-	  -t $(ES_IMAGE) \
-	  -f ES/Dockerfile .
 
 es-build: check-env
 	set -a
