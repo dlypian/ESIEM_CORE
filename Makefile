@@ -191,26 +191,3 @@ vault-vars: check-env
 	  -H "X-Vault-Token: $$VAULT_TOKEN" \
 	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH")
 
-
-up-from-vault: check-env network validate
-	set -a
-	source $(ENV_FILE)
-	set +a
-
-	echo "Pulling variables from Vault..."
-
-	VAULT_JSON="$$(curl -s \
-	  -H "X-Vault-Token: $$VAULT_TOKEN" \
-	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH")"
-
-	export CERTS_DIR="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["CERTS_DIR"])' <<< "$$VAULT_JSON")"
-	export CLIENT_DOMAIN="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["CLIENT_DOMAIN"])' <<< "$$VAULT_JSON")"
-	export ELASTIC_HOST="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["ELASTIC_HOST"])' <<< "$$VAULT_JSON")"
-	export ELASTIC_PASSWORD="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["ELASTIC_PASSWORD"])' <<< "$$VAULT_JSON")"
-	export ELASTIC_USER="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["ELASTIC_USER"])' <<< "$$VAULT_JSON")"
-	export KIBANA_PASSWORD="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["KIBANA_PASSWORD"])' <<< "$$VAULT_JSON")"
-	export ROOT_DOMAIN="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["ROOT_DOMAIN"])' <<< "$$VAULT_JSON")"
-
-	echo "Deploying stack $(STACK_NAME)..."
-
-	docker stack deploy -c $(ES_STACK) $(STACK_NAME)
