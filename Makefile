@@ -14,7 +14,7 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate bootstrap up bootstrap-from-vault up-from-vault wait health nodes shards down ps logs clean-history vault-vars
+.PHONY: help check-env network validate bootstrap up bootstrap-from-vault up-from-vault wait health nodes shards down ps logs clean-history vault-vars up-from-vault
 
 help:
 	@echo "Targets:"
@@ -34,6 +34,7 @@ help:
 	@echo "  make down                - remove the ES stack"
 	@echo "  make clean-history       - remove ES stack and bring it back with normal stack"
 	@echo "  make vault-vars          - pull and print variables from Vault"
+	@echo "  make up-from-vault        - deploy stack using Vault variables"
 
 check-env:
 	@if [[ ! -f "$(ENV_FILE)" ]]; then
@@ -189,3 +190,27 @@ vault-vars: check-env
 	python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["data"]["data"], indent=2))' < <(curl -s \
 	  -H "X-Vault-Token: $$VAULT_TOKEN" \
 	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH")
+
+
+up-from-vault: check-env network validate
+	set -a
+	source $(ENV_FILE)
+	set +a
+
+	echo "Pulling variables from Vault..."
+
+	VAULT_JSON="$$(curl -s \
+	  -H "X-Vault-Token: $$VAULT_TOKEN" \
+	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH")"
+
+	export CERTS_DIR="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["CERTS_DIR"])' <<< "$$VAULT_JSON")"
+	export CLIENT_DOMAIN="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["CLIENT_DOMAIN"])' <<< "$$VAULT_JSON")"
+	export ELASTIC_HOST="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["ELASTIC_HOST"])' <<< "$$VAULT_JSON")"
+	export ELASTIC_PASSWORD="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["ELASTIC_PASSWORD"])' <<< "$$VAULT_JSON")"
+	export ELASTIC_USER="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["ELASTIC_USER"])' <<< "$$VAULT_JSON")"
+	export KIBANA_PASSWORD="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["KIBANA_PASSWORD"])' <<< "$$VAULT_JSON")"
+	export ROOT_DOMAIN="$$(python3 -c 'import json,sys; print(json.load(sys.stdin)["data"]["data"]["ROOT_DOMAIN"])' <<< "$$VAULT_JSON")"
+
+	echo "Deploying stack $(STACK_NAME)..."
+
+	docker stack deploy -c $(ES_STACK) $(STACK_NAME)
