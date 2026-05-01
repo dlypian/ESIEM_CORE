@@ -170,5 +170,4 @@ services:
 
 networks:
   ESIEM_Network:
-    driver: overlay
-    attachable: true
+    external: true
