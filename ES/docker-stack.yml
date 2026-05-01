@@ -59,7 +59,7 @@ services:
       retries: 60
 
   es02:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+  image: esiem/elasticsearch-vault:${STACK_VERSION} 
     hostname: es02.${CLIENT_DOMAIN}
     networks:
       - ESIEM_Network
@@ -110,7 +110,7 @@ services:
       retries: 60
 
   es03:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    image: esiem/elasticsearch-vault:${STACK_VERSION}
     hostname: es03.${CLIENT_DOMAIN}
     networks:
       - ESIEM_Network

@@ -6,6 +6,10 @@ ENV_FILE := .env
 STACK_NAME := ESIEM_CORE_ES
 NETWORK_NAME := ESIEM_Network
 
+ES_IMAGE_NAME := esiem/elasticsearch-vault
+ES_IMAGE_TAG := $(STACK_VERSION)
+ES_IMAGE := $(ES_IMAGE_NAME):$(ES_IMAGE_TAG)
+
 ES_BOOTSTRAP_STACK := ES/docker-stack.bootstrap.yml
 ES_STACK := ES/docker-stack.yml
 
@@ -14,7 +18,7 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate bootstrap up bootstrap-from-vault up-from-vault wait health nodes shards down ps logs clean-history vault-vars up-from-vault
+.PHONY: help check-env network validate bootstrap up bootstrap-from-vault up-from-vault wait health nodes shards down ps logs clean-history vault-vars up-from-vault 
 
 help:
 	@echo "Targets:"
@@ -35,6 +39,7 @@ help:
 	@echo "  make clean-history       - remove ES stack and bring it back with normal stack"
 	@echo "  make vault-vars          - pull and print variables from Vault"
 	@echo "  make up-from-vault        - deploy stack using Vault variables"
+	@echo "  make es-build             - build Vault-enabled Elasticsearch image"
 
 check-env:
 	@if [[ ! -f "$(ENV_FILE)" ]]; then
@@ -56,18 +61,18 @@ validate: check-env
 	docker compose --env-file $(ENV_FILE) -f $(ES_STACK) config >/dev/null
 	@echo "ES stack files validate cleanly"
 
-bootstrap: check-env network validate
+bootstrap: check-env network validate es-build
 	set -a
 	source $(ENV_FILE)
 	set +a
 	docker stack deploy -c $(ES_BOOTSTRAP_STACK) $(STACK_NAME)
 
-up: check-env network validate
+up: check-env network validate es-build
 	set -a
 	source $(ENV_FILE)
 	set +a
 	docker stack deploy -c $(ES_STACK) $(STACK_NAME)
-
+	
 bootstrap-from-vault: check-env network validate
 	set -a
 	source $(ENV_FILE)
@@ -191,3 +196,11 @@ vault-vars: check-env
 	  -H "X-Vault-Token: $$VAULT_TOKEN" \
 	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH")
 
+es-build: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	docker build \
+	  --build-arg STACK_VERSION=$$STACK_VERSION \
+	  -t $(ES_IMAGE) \
+	  -f ES/Dockerfile .
