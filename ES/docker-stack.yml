@@ -2,7 +2,7 @@ version: "3.8"
 
 services:
   es01:
-    image: docker.elastic.co/elasticsearch/elasticsearch:${STACK_VERSION}
+    image: esiem/elasticsearch-vault:${STACK_VERSION}
     hostname: es01.${CLIENT_DOMAIN}
     networks:
       - ESIEM_Network
