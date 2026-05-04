@@ -1,6 +1,6 @@
-ARG PYTHON_ELASTICSEARCH_VERSION
-
 FROM python:3.11-slim
+
+ARG PYTHON_ELASTICSEARCH_VERSION
 
 WORKDIR /app
 
@@ -8,7 +8,8 @@ RUN apt-get update && \
     apt-get install -y curl jq && \
     rm -rf /var/lib/apt/lists/*
 
-RUN pip install --no-cache-dir elasticsearch==${PYTHON_ELASTICSEARCH_VERSION}
+RUN test -n "$PYTHON_ELASTICSEARCH_VERSION" && \
+    pip install --no-cache-dir elasticsearch==${PYTHON_ELASTICSEARCH_VERSION}
 
 COPY vault-entrypoint.sh /usr/local/bin/vault-entrypoint.sh
 COPY setup.py /app/setup.py
