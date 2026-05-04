@@ -3,6 +3,9 @@ SHELL := /bin/bash
 .DEFAULT_GOAL := help
 
 ENV_FILE := .env
+
+ES_BOOTSTRAP_STACK := ES/docker-stack.bootstrap.yml
+ES_STACK := ES/docker-stack.yml
 STACK_NAME := ESIEM_CORE_ES
 NETWORK_NAME := ESIEM_Network
 ES_IMAGE_NAME := esiem/elasticsearch-vault
@@ -10,9 +13,10 @@ MGMT_IMAGE_NAME := esiem/mgmt-setup
 KIBANA_STACK_NAME := ESIEM_CORE_KIBANA
 KIBANA_STACK := Kibana/docker-stack.yml
 KIBANA_IMAGE_NAME := esiem/kibana-vault
+LOGSTASH_STACK_NAME := ESIEM_CORE_LOGSTASH
+LOGSTASH_STACK := Logstash/docker-stack.yml
+LOGSTASH_IMAGE_NAME := esiem/logstash-vault
 
-ES_BOOTSTRAP_STACK := ES/docker-stack.bootstrap.yml
-ES_STACK := ES/docker-stack.yml
 
 VAULT_GET_PY := python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]["data"]; print(d["ELASTIC_PASSWORD"])'
 
@@ -21,7 +25,7 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs
+.PHONY: help check-env network validate es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs
 
 help:
 	@echo "Targets:"
@@ -54,7 +58,12 @@ help:
 	@echo "  make kibana-down    - remove Kibana stack"
 	@echo "  make kibana-ps      - show Kibana stack status"
 	@echo "  make kibana-logs    - tail Kibana logs"
-	
+	@echo "  make logstash-build - build Vault-enabled Logstash image"
+	@echo "  make logstash-up    - deploy Logstash stack"
+	@echo "  make logstash-down  - remove Logstash stack"
+	@echo "  make logstash-ps    - show Logstash stack status"
+	@echo "  make logstash-logs  - tail Logstash logs"
+
 check-env:
 	@if [[ ! -f "$(ENV_FILE)" ]]; then
 		echo "Missing $(ENV_FILE)"
@@ -244,3 +253,33 @@ kibana-ps:
 
 kibana-logs:
 	docker service logs $(KIBANA_STACK_NAME)_kibana --tail 100 -f
+
+logstash-build: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	@if [[ -z "$$STACK_VERSION" ]]; then
+		echo "Missing STACK_VERSION in $(ENV_FILE)"
+		exit 1
+	fi
+	docker build \
+	  --build-arg STACK_VERSION=$$STACK_VERSION \
+	  -t $(LOGSTASH_IMAGE_NAME):$$STACK_VERSION \
+	  -f Logstash/Dockerfile .
+
+logstash-up: check-env network logstash-build
+	set -a
+	source $(ENV_FILE)
+	set +a
+	docker stack deploy -c $(LOGSTASH_STACK) $(LOGSTASH_STACK_NAME)
+
+logstash-down:
+	docker stack rm $(LOGSTASH_STACK_NAME)
+
+logstash-ps:
+	docker stack services $(LOGSTASH_STACK_NAME) || true
+	echo
+	docker stack ps $(LOGSTASH_STACK_NAME) || true
+
+logstash-logs:
+	docker service logs $(LOGSTASH_STACK_NAME)_logstash --tail 100 -f

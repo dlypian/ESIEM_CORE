@@ -1,0 +1,134 @@
+version: "3.8"
+
+services:
+  logstash:
+    image: esiem/logstash-vault:${STACK_VERSION}
+    hostname: logstash.${CLIENT_DOMAIN}
+    networks:
+      - ESIEM_Network
+
+    environment:
+      # Vault bootstrap values
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
+
+      # Non-secret values
+      - CLIENT_DOMAIN=${CLIENT_DOMAIN}
+      - ROOT_DOMAIN=${ROOT_DOMAIN}
+      - TZ=${TZ}
+      - LS_JAVA_OPTS=${LS_JAVA_OPTS}
+
+      # Monitoring values
+      - xpack.monitoring.elasticsearch.username=elastic
+      - monitoring.elasticsearch.hosts=https://es01.${CLIENT_DOMAIN}:9200
+      - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=/certs/isrgrootx.pem
+
+    volumes:
+      - /ESIEM/ESIEM_CORE/Logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - /ESIEM/ESIEM_CORE/Logstash/config:/usr/share/logstash/config:ro
+      - /ESIEM/ESIEM_CORE/Logstash/templates:/usr/share/logstash/templates:ro
+      - ${CERTS_DIR}:/usr/share/logstash/config/certs:ro
+      - ${CERTS_isrgrootx1}:/certs/isrgrootx.pem:ro
+
+    command: >
+      bash -c "logstash -f /usr/share/logstash/pipeline"
+
+    ports:
+      - target: 9600
+        published: 9600
+        protocol: tcp
+        mode: host
+
+      - target: 9600
+        published: 9600
+        protocol: udp
+        mode: host
+
+      - target: 5144
+        published: 5144
+        protocol: udp
+        mode: host
+
+      - target: 5144
+        published: 5144
+        protocol: tcp
+        mode: host
+
+      - target: 514
+        published: 514
+        protocol: tcp
+        mode: host
+
+      - target: 514
+        published: 514
+        protocol: udp
+        mode: host
+
+      - target: 515
+        published: 515
+        protocol: udp
+        mode: host
+
+      - target: 516
+        published: 516
+        protocol: udp
+        mode: host
+
+      - target: 5044
+        published: 5044
+        protocol: udp
+        mode: host
+
+      - target: 5044
+        published: 5044
+        protocol: tcp
+        mode: host
+
+      - target: 5045
+        published: 5045
+        protocol: tcp
+        mode: host
+
+      - target: 5045
+        published: 5045
+        protocol: udp
+        mode: host
+
+      - target: 2055
+        published: 2055
+        protocol: udp
+        mode: host
+
+      - target: 9995
+        published: 9995
+        protocol: udp
+        mode: host
+
+      - target: 550
+        published: 550
+        protocol: udp
+        mode: host
+
+      - target: 550
+        published: 550
+        protocol: tcp
+        mode: host
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: ${LOGSTASH_MEM_LIMIT}
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+networks:
+  ESIEM_Network:
+    external: true

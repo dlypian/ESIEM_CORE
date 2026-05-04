@@ -1,0 +1,14 @@
+templates:
+  25461:               # Palo Alto Networks enterprise ID
+    40001:
+      name: pan_conn_id
+      type: uint64
+    40002:
+      name: pan_app_id
+      type: string
+    40003:
+      name: pan_rule_uuid
+      type: string
+    40004:
+      name: pan_session_id
+      type: uint64

@@ -10,7 +10,7 @@ The Elasticsearch stack lives in:
 ES/
   docker-stack.bootstrap.yml
   docker-stack.yml
-
+```
 
 ## Bootstrap
 
@@ -28,9 +28,11 @@ make health
 make kibana-up
 make kibana-ps
 make kibana-logs
+```
 
 ## Normal Start
 
+```bash
 make network
 make es-up
 make wait
@@ -38,3 +40,7 @@ make health
 make kibana-up
 make kibana-ps
 make kibana-logs
+make logstash-up
+make logstash-ps
+make logstash-logs
+```
