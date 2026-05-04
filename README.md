@@ -14,17 +14,21 @@ ES/
 
 ## Bootstrap
 
+Use this for a brand-new deployment or after wiping Elasticsearch data.
+
+```bash
 make network
 make validate
-make bootstrap
+make es-bootstrap
 make wait
-make health
-make up
+make es-setup
+make es-up
 make wait
 make health
 
 ## Normal Start
 
-make up
+make network
+make es-up
 make wait
 make health

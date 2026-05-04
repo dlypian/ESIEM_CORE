@@ -5,8 +5,8 @@ SHELL := /bin/bash
 ENV_FILE := .env
 STACK_NAME := ESIEM_CORE_ES
 NETWORK_NAME := ESIEM_Network
-
 ES_IMAGE_NAME := esiem/elasticsearch-vault
+MGMT_IMAGE_NAME := esiem/mgmt-setup
 
 ES_BOOTSTRAP_STACK := ES/docker-stack.bootstrap.yml
 ES_STACK := ES/docker-stack.yml
@@ -18,15 +18,20 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate bootstrap up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars
+.PHONY: help check-env network validate es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup
 
 help:
 	@echo "Targets:"
 	@echo "  make check-env      - verify .env exists"
 	@echo "  make network        - create shared overlay network if missing"
 	@echo "  make validate       - validate ES stack files"
-	@echo "  make bootstrap      - deploy ES bootstrap stack using .env values"
-	@echo "  make up             - deploy normal ES stack using .env values"
+	@echo "=== ES ==="
+	@echo "  make es-bootstrap   - deploy ES bootstrap stack"
+	@echo "  make es-up          - deploy normal ES stack"
+	@echo ""
+	@echo "=== LEGACY ==="
+	@echo "  make bootstrap      - (alias for es-bootstrap)"
+	@echo "  make up             - (alias for es-up)"
 	@echo "  make wait           - wait for ES API to respond"
 	@echo "  make health         - show cluster health"
 	@echo "  make nodes          - show node list"
@@ -39,6 +44,8 @@ help:
 	@echo "  make clean-history  - remove ES stack and bring it back with normal stack"
 	@echo "  make es-build       - build Vault-enabled Elasticsearch image"
 	@echo "  make vault-vars     - pull and print variables from Vault"
+	@echo "  make mgmt-build     - build one-shot MGMT setup image"
+	@echo "  make es-setup       - run one-shot ES post-bootstrap setup"
 
 check-env:
 	@if [[ ! -f "$(ENV_FILE)" ]]; then
@@ -57,16 +64,16 @@ network: check-env
 
 validate: check-env
 	docker compose --env-file $(ENV_FILE) -f $(ES_BOOTSTRAP_STACK) config >/dev/null
-	docker compose --env-file $(ENV_FILE) -f $(ES_STACK) config >/dev/null
+	docker compose --env-file $(ENV_FILE) -f $(ES_STACK) config >/devS/null
 	@echo "ES stack files validate cleanly"
 
-bootstrap: check-env network validate es-build
+es-bootstrap: check-env network validate es-build
 	set -a
 	source $(ENV_FILE)
 	set +a
 	docker stack deploy -c $(ES_BOOTSTRAP_STACK) $(STACK_NAME)
 
-up: check-env network validate es-build
+es-up: check-env network validate es-build
 	set -a
 	source $(ENV_FILE)
 	set +a
@@ -135,7 +142,7 @@ down:
 
 clean-history: down
 	sleep 10
-	$(MAKE) up
+	$(MAKE) es-up
 
 vault-vars: check-env
 	set -a
@@ -170,3 +177,31 @@ es-build: check-env
 	  --build-arg STACK_VERSION=$$STACK_VERSION \
 	  -t esiem/elasticsearch-vault:$$STACK_VERSION \
 	  -f ES/Dockerfile .
+
+# Backward compatibility
+bootstrap: es-bootstrap
+up: es-up
+
+mgmt-build: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	docker build \
+	  --build-arg PYTHON_ELASTICSEARCH_VERSION=$$PYTHON_ELASTICSEARCH_VERSION \
+	  -t $(MGMT_IMAGE_NAME):latest \
+	  -f MGMT-Setup/Dockerfile MGMT-Setup
+
+es-setup: check-env mgmt-build
+	set -a
+	source $(ENV_FILE)
+	set +a
+	@if [[ -z "$$VAULT_ADDR" || -z "$$VAULT_TOKEN" || -z "$$VAULT_SECRET_PATH" ]]; then
+		echo "Missing VAULT_ADDR, VAULT_TOKEN, or VAULT_SECRET_PATH in $(ENV_FILE)"
+		exit 1
+	fi
+	docker run --rm \
+	  --network $(NETWORK_NAME) \
+	  -e VAULT_ADDR=$$VAULT_ADDR \
+	  -e VAULT_TOKEN=$$VAULT_TOKEN \
+	  -e VAULT_SECRET_PATH=$$VAULT_SECRET_PATH \
+	  $(MGMT_IMAGE_NAME):latest
