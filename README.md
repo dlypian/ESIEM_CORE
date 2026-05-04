@@ -25,6 +25,9 @@ make es-setup
 make es-up
 make wait
 make health
+make kibana-up
+make kibana-ps
+make kibana-logs
 
 ## Normal Start
 
@@ -32,3 +35,6 @@ make network
 make es-up
 make wait
 make health
+make kibana-up
+make kibana-ps
+make kibana-logs

@@ -1,0 +1,72 @@
+version: "3.8"
+
+services:
+  kibana:
+    image: esiem/kibana-vault:${STACK_VERSION}
+    hostname: kibana.${CLIENT_DOMAIN}
+    networks:
+      - ESIEM_Network
+
+    volumes:
+      - kibanadata:/usr/share/kibana/data
+      - ./Kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - ${CERTS_DIR}:/usr/share/kibana/config/certs:ro
+      - ${CERTS_isrgrootx1}:/certs/isrgrootx.pem:ro
+
+    ports:
+      - target: 5601
+        published: ${KIBANA_PORT}
+        protocol: tcp
+        mode: host
+
+    environment:
+      - SERVERNAME=kibana
+      - ELASTICSEARCH_USERNAME=kibana_system
+
+      # Vault bootstrap values
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
+
+      # Non-secret deployment values
+      - CLIENT_DOMAIN=${CLIENT_DOMAIN}
+      - ROOT_DOMAIN=${ROOT_DOMAIN}
+      - TZ=${TZ}
+
+      # TLS
+      - ELASTICSEARCH_SSL_CERTIFICATEAUTHORITIES=/certs/isrgrootx.pem
+      - SERVER_SSL_ENABLED=true
+      - SERVER_SSL_KEY=/usr/share/kibana/config/certs/privkey.pem
+      - SERVER_SSL_CERTIFICATE=/usr/share/kibana/config/certs/fullchain.pem
+      - SERVER_SSL_CERTIFICATEAUTHORITIES=/usr/share/kibana/config/certs/fullchain.pem
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: ${KIBANA_MEM_LIMIT}
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -k -s -I https://localhost:5601 | grep -q 'HTTP/1.1 302 Found'",
+        ]
+      interval: 10s
+      timeout: 30s
+      retries: 120
+
+networks:
+  ESIEM_Network:
+    external: true
+
+volumes:
+  kibanadata:

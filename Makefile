@@ -7,6 +7,9 @@ STACK_NAME := ESIEM_CORE_ES
 NETWORK_NAME := ESIEM_Network
 ES_IMAGE_NAME := esiem/elasticsearch-vault
 MGMT_IMAGE_NAME := esiem/mgmt-setup
+KIBANA_STACK_NAME := ESIEM_CORE_KIBANA
+KIBANA_STACK := Kibana/docker-stack.yml
+KIBANA_IMAGE_NAME := esiem/kibana-vault
 
 ES_BOOTSTRAP_STACK := ES/docker-stack.bootstrap.yml
 ES_STACK := ES/docker-stack.yml
@@ -18,7 +21,7 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup
+.PHONY: help check-env network validate es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs
 
 help:
 	@echo "Targets:"
@@ -46,7 +49,12 @@ help:
 	@echo "  make vault-vars     - pull and print variables from Vault"
 	@echo "  make mgmt-build     - build one-shot MGMT setup image"
 	@echo "  make es-setup       - run one-shot ES post-bootstrap setup"
-
+	@echo "  make kibana-build   - build Vault-enabled Kibana image"
+	@echo "  make kibana-up      - deploy Kibana stack"
+	@echo "  make kibana-down    - remove Kibana stack"
+	@echo "  make kibana-ps      - show Kibana stack status"
+	@echo "  make kibana-logs    - tail Kibana logs"
+	
 check-env:
 	@if [[ ! -f "$(ENV_FILE)" ]]; then
 		echo "Missing $(ENV_FILE)"
@@ -205,3 +213,34 @@ es-setup: check-env mgmt-build
 	  -e VAULT_TOKEN=$$VAULT_TOKEN \
 	  -e VAULT_SECRET_PATH=$$VAULT_SECRET_PATH \
 	  $(MGMT_IMAGE_NAME):latest
+
+
+kibana-build: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	@if [[ -z "$$STACK_VERSION" ]]; then
+		echo "Missing STACK_VERSION in $(ENV_FILE)"
+		exit 1
+	fi
+	docker build \
+	  --build-arg STACK_VERSION=$$STACK_VERSION \
+	  -t $(KIBANA_IMAGE_NAME):$$STACK_VERSION \
+	  -f Kibana/Dockerfile .
+
+kibana-up: check-env network kibana-build
+	set -a
+	source $(ENV_FILE)
+	set +a
+	docker stack deploy -c $(KIBANA_STACK) $(KIBANA_STACK_NAME)
+
+kibana-down:
+	docker stack rm $(KIBANA_STACK_NAME)
+
+kibana-ps:
+	docker stack services $(KIBANA_STACK_NAME) || true
+	echo
+	docker stack ps $(KIBANA_STACK_NAME) || true
+
+kibana-logs:
+	docker service logs $(KIBANA_STACK_NAME)_kibana --tail 100 -f
