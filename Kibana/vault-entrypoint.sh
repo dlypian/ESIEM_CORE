@@ -7,12 +7,14 @@ echo "Fetching Kibana secrets from Vault..."
 : "${VAULT_TOKEN:?VAULT_TOKEN is required}"
 : "${VAULT_SECRET_PATH:?VAULT_SECRET_PATH is required}"
 
+NODE_BIN="/usr/share/kibana/node/bin/node"
+
 VAULT_JSON="$(curl -fsS \
   -H "X-Vault-Token: ${VAULT_TOKEN}" \
   "${VAULT_ADDR}/v1/${VAULT_SECRET_PATH}")"
 
-export ELASTICSEARCH_PASSWORD="$(echo "$VAULT_JSON" | jq -r '.data.data.KIBANA_PASSWORD')"
-export ELASTICSEARCH_HOSTS="$(echo "$VAULT_JSON" | jq -r '.data.data.ELASTIC_HOST')"
+export ELASTICSEARCH_PASSWORD="$("$NODE_BIN" -e 'const d=JSON.parse(process.argv[1]); console.log(d.data.data.KIBANA_PASSWORD)' "$VAULT_JSON")"
+export ELASTICSEARCH_HOSTS="$("$NODE_BIN" -e 'const d=JSON.parse(process.argv[1]); console.log(d.data.data.ELASTIC_HOST)' "$VAULT_JSON")"
 
 if [[ -z "$ELASTICSEARCH_PASSWORD" || "$ELASTICSEARCH_PASSWORD" == "null" ]]; then
   echo "KIBANA_PASSWORD missing from Vault"
