@@ -9,7 +9,7 @@ services:
 
     volumes:
       - kibanadata:/usr/share/kibana/data
-      - ./Kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+      - /ESIEM/ESIEM_CORE/Kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
       - ${CERTS_DIR}:/usr/share/kibana/config/certs:ro
       - ${CERTS_isrgrootx1}:/certs/isrgrootx.pem:ro
 
