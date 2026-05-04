@@ -22,7 +22,7 @@ services:
       # Monitoring values
       - xpack.monitoring.elasticsearch.username=elastic
       - monitoring.elasticsearch.hosts=https://es01.${CLIENT_DOMAIN}:9200
-
+      
     volumes:
       - /ESIEM/ESIEM_CORE/Logstash/pipeline:/usr/share/logstash/pipeline:ro
       - /ESIEM/ESIEM_CORE/Logstash/config:/usr/share/logstash/config
