@@ -1,8 +1,8 @@
 http.host: "0.0.0.0"
-xpack.monitoring.elasticsearch.hosts: [ "https://es01.${CLIENT_DOMAIN}:9200" ]
+
 pipeline.ecs_compatibility: disabled
+
 xpack.monitoring.enabled: true
 xpack.monitoring.elasticsearch.hosts: ["https://es01.${CLIENT_DOMAIN}:9200"]
 xpack.monitoring.elasticsearch.username: "${ELASTIC_USER}"
 xpack.monitoring.elasticsearch.password: "${ELASTIC_PASSWORD}"
-pipeline.ecs_compatibility: disabled
