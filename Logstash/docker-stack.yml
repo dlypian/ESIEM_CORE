@@ -27,7 +27,6 @@ services:
       - /ESIEM/ESIEM_CORE/Logstash/pipeline:/usr/share/logstash/pipeline:ro
       - /ESIEM/ESIEM_CORE/Logstash/config:/usr/share/logstash/config
       - /ESIEM/ESIEM_CORE/Logstash/templates:/usr/share/logstash/templates:ro
-      - ${CERTS_DIR}:/usr/share/logstash/config/certs:ro
 
     command: >
       bash -c "logstash -f /usr/share/logstash/pipeline"
