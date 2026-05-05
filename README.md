@@ -28,6 +28,7 @@ make health
 make kibana-up
 make kibana-ps
 make kibana-logs
+make scheduler-build
 ```
 
 ## Normal Start
@@ -43,4 +44,8 @@ make kibana-logs
 make logstash-up
 make logstash-ps
 make logstash-logs
+make scheduler-build
+make scheduler-up
+make scheduler-ps
+make scheduler-logs
 ```

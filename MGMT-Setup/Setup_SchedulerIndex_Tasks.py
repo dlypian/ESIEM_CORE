@@ -27,12 +27,11 @@ settings = {
     },
 }
 
-
 data = [
     {
-        "name": "ThreatNewsLetter",
-        "script": "ThreatNewsLetter.py",
-        "schedule": "0 8 * * *",
+        "name": "VaultSync",
+        "script": "VaultSync.py",
+        "schedule": "* * * * *",
         "notify": ["daniel.lypian@esiem.io"],
     }
 ]

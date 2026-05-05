@@ -1,0 +1,37 @@
+version: "3.8"
+
+services:
+  scheduler:
+    image: esiem/scheduler-vault:${STACK_VERSION}
+    hostname: scheduler.${CLIENT_DOMAIN}
+    networks:
+      - ESIEM_Network
+
+    environment:
+      - VAULT_ADDR=${VAULT_ADDR}
+      - VAULT_TOKEN=${VAULT_TOKEN}
+      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
+
+    volumes:
+      - /ESIEM/ESIEM_CORE/Logstash/pipeline/EnrichmentFiles:/usr/share/logstash/pipeline/EnrichmentFiles
+      - /ESIEM/ESIEM_CORE/Scheduler:/Scheduler
+      - ${ES_BACKUP}:/Backups
+      - ${Certs}:/Certs
+
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+      resources:
+        limits:
+          memory: ${SCHEDULER_MEM_LIMIT}
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "50m"
+        max-file: "3"
+
+networks:
+  ESIEM_Network:
+    external: true

@@ -16,6 +16,9 @@ KIBANA_IMAGE_NAME := esiem/kibana-vault
 LOGSTASH_STACK_NAME := ESIEM_CORE_LOGSTASH
 LOGSTASH_STACK := Logstash/docker-stack.yml
 LOGSTASH_IMAGE_NAME := esiem/logstash-vault
+SCHEDULER_STACK_NAME := ESIEM_CORE_SCHEDULER
+SCHEDULER_STACK := Scheduler/docker-stack.yml
+SCHEDULER_IMAGE_NAME := esiem/scheduler-vault
 
 
 VAULT_GET_PY := python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]["data"]; print(d["ELASTIC_PASSWORD"])'
@@ -25,7 +28,7 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs
+.PHONY: help check-env network validate es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs scheduler-build scheduler-up scheduler-down scheduler-ps scheduler-logs
 
 help:
 	@echo "Targets:"
@@ -63,6 +66,11 @@ help:
 	@echo "  make logstash-down  - remove Logstash stack"
 	@echo "  make logstash-ps    - show Logstash stack status"
 	@echo "  make logstash-logs  - tail Logstash logs"
+	@echo "  make scheduler-build - build Vault-enabled Scheduler image"
+	@echo "  make scheduler-up    - deploy Scheduler stack"
+	@echo "  make scheduler-down  - remove Scheduler stack"
+	@echo "  make scheduler-ps    - show Scheduler stack status"
+	@echo "  make scheduler-logs  - tail Scheduler logs"
 
 check-env:
 	@if [[ ! -f "$(ENV_FILE)" ]]; then
@@ -283,3 +291,28 @@ logstash-ps:
 
 logstash-logs:
 	docker service logs $(LOGSTASH_STACK_NAME)_logstash --tail 100 -f
+
+scheduler-build: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	docker build \
+	  -t $(SCHEDULER_IMAGE_NAME):$$STACK_VERSION \
+	  -f Scheduler/Dockerfile Scheduler
+
+scheduler-up: check-env network scheduler-build
+	set -a
+	source $(ENV_FILE)
+	set +a
+	docker stack deploy -c $(SCHEDULER_STACK) $(SCHEDULER_STACK_NAME)
+
+scheduler-down:
+	docker stack rm $(SCHEDULER_STACK_NAME)
+
+scheduler-ps:
+	docker stack services $(SCHEDULER_STACK_NAME) || true
+	echo
+	docker stack ps $(SCHEDULER_STACK_NAME) || true
+
+scheduler-logs:
+	docker service logs $(SCHEDULER_STACK_NAME)_scheduler --tail 100 -f
