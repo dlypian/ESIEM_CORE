@@ -20,7 +20,6 @@ Use this for a brand-new deployment or after wiping Elasticsearch data.
 make network
 make validate
 make es-bootstrap
-make wait
 make es-setup
 make es-up
 make wait

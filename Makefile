@@ -89,7 +89,7 @@ network: check-env
 
 validate: check-env
 	docker compose --env-file $(ENV_FILE) -f $(ES_BOOTSTRAP_STACK) config >/dev/null
-	docker compose --env-file $(ENV_FILE) -f $(ES_STACK) config >/devS/null
+	docker compose --env-file $(ENV_FILE) -f $(ES_STACK) config >/dev/null
 	@echo "ES stack files validate cleanly"
 
 es-bootstrap: check-env network validate es-build
