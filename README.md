@@ -19,30 +19,46 @@ Use this for a brand-new deployment or after wiping Elasticsearch data.
 ```bash
 make network
 make validate
+make es-dirs
+
 make es-bootstrap
+make wait
 make es-setup
 make es-up
 make wait
 make health
+
 make kibana-up
 make kibana-ps
 make kibana-logs
+
+make logstash-up
+make logstash-ps
+make logstash-logs
+
 make scheduler-build
+make scheduler-up
+make scheduler-ps
+make scheduler-logs
 ```
 
 ## Normal Start
 
 ```bash
 make network
+
 make es-up
 make wait
 make health
+
 make kibana-up
 make kibana-ps
 make kibana-logs
+
 make logstash-up
 make logstash-ps
 make logstash-logs
+
 make scheduler-build
 make scheduler-up
 make scheduler-ps
