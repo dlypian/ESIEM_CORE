@@ -20,7 +20,6 @@ SCHEDULER_STACK_NAME := ESIEM_CORE_SCHEDULER
 SCHEDULER_STACK := Scheduler/docker-stack.yml
 SCHEDULER_IMAGE_NAME := esiem/scheduler-vault
 
-
 VAULT_GET_PY := python3 -c 'import json,sys; d=json.load(sys.stdin)["data"]["data"]; print(d["ELASTIC_PASSWORD"])'
 
 -include $(ENV_FILE)
@@ -28,44 +27,45 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs scheduler-build scheduler-up scheduler-down scheduler-ps scheduler-logs
+.PHONY: help check-env network validate es-dirs es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs scheduler-build scheduler-up scheduler-down scheduler-ps scheduler-logs
 
 help:
 	@echo "Targets:"
-	@echo "  make check-env      - verify .env exists"
-	@echo "  make network        - create shared overlay network if missing"
-	@echo "  make validate       - validate ES stack files"
+	@echo "  make check-env       - verify .env exists"
+	@echo "  make network         - create shared overlay network if missing"
+	@echo "  make validate        - validate ES stack files"
+	@echo "  make es-dirs         - create ES host data directories from .env"
 	@echo "=== ES ==="
-	@echo "  make es-bootstrap   - deploy ES bootstrap stack"
-	@echo "  make es-up          - deploy normal ES stack"
+	@echo "  make es-bootstrap    - deploy ES bootstrap stack"
+	@echo "  make es-up           - deploy normal ES stack"
 	@echo ""
 	@echo "=== LEGACY ==="
-	@echo "  make bootstrap      - (alias for es-bootstrap)"
-	@echo "  make up             - (alias for es-up)"
-	@echo "  make wait           - wait for ES API to respond"
-	@echo "  make health         - show cluster health"
-	@echo "  make nodes          - show node list"
-	@echo "  make shards         - show shard allocation"
-	@echo "  make ps             - show swarm tasks for the ES stack"
-	@echo "  make logs           - tail logs for es01"
-	@echo "  make logs-es02      - tail logs for es02"
-	@echo "  make logs-es03      - tail logs for es03"
-	@echo "  make down           - remove the ES stack"
-	@echo "  make clean-history  - remove ES stack and bring it back with normal stack"
-	@echo "  make es-build       - build Vault-enabled Elasticsearch image"
-	@echo "  make vault-vars     - pull and print variables from Vault"
-	@echo "  make mgmt-build     - build one-shot MGMT setup image"
-	@echo "  make es-setup       - run one-shot ES post-bootstrap setup"
-	@echo "  make kibana-build   - build Vault-enabled Kibana image"
-	@echo "  make kibana-up      - deploy Kibana stack"
-	@echo "  make kibana-down    - remove Kibana stack"
-	@echo "  make kibana-ps      - show Kibana stack status"
-	@echo "  make kibana-logs    - tail Kibana logs"
-	@echo "  make logstash-build - build Vault-enabled Logstash image"
-	@echo "  make logstash-up    - deploy Logstash stack"
-	@echo "  make logstash-down  - remove Logstash stack"
-	@echo "  make logstash-ps    - show Logstash stack status"
-	@echo "  make logstash-logs  - tail Logstash logs"
+	@echo "  make bootstrap       - (alias for es-bootstrap)"
+	@echo "  make up              - (alias for es-up)"
+	@echo "  make wait            - wait for ES API to respond"
+	@echo "  make health          - show cluster health"
+	@echo "  make nodes           - show node list"
+	@echo "  make shards          - show shard allocation"
+	@echo "  make ps              - show swarm tasks for the ES stack"
+	@echo "  make logs            - tail logs for es01"
+	@echo "  make logs-es02       - tail logs for es02"
+	@echo "  make logs-es03       - tail logs for es03"
+	@echo "  make down            - remove the ES stack"
+	@echo "  make clean-history   - remove ES stack and bring it back with normal stack"
+	@echo "  make es-build        - build Vault-enabled Elasticsearch image"
+	@echo "  make vault-vars      - pull and print variables from Vault"
+	@echo "  make mgmt-build      - build one-shot MGMT setup image"
+	@echo "  make es-setup        - run one-shot ES post-bootstrap setup"
+	@echo "  make kibana-build    - build Vault-enabled Kibana image"
+	@echo "  make kibana-up       - deploy Kibana stack"
+	@echo "  make kibana-down     - remove Kibana stack"
+	@echo "  make kibana-ps       - show Kibana stack status"
+	@echo "  make kibana-logs     - tail Kibana logs"
+	@echo "  make logstash-build  - build Vault-enabled Logstash image"
+	@echo "  make logstash-up     - deploy Logstash stack"
+	@echo "  make logstash-down   - remove Logstash stack"
+	@echo "  make logstash-ps     - show Logstash stack status"
+	@echo "  make logstash-logs   - tail Logstash logs"
 	@echo "  make scheduler-build - build Vault-enabled Scheduler image"
 	@echo "  make scheduler-up    - deploy Scheduler stack"
 	@echo "  make scheduler-down  - remove Scheduler stack"
@@ -92,13 +92,39 @@ validate: check-env
 	docker compose --env-file $(ENV_FILE) -f $(ES_STACK) config >/dev/null
 	@echo "ES stack files validate cleanly"
 
-es-bootstrap: check-env network validate es-build
+es-dirs: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	@if [[ -z "$$ES01_DATA" || -z "$$ES02_DATA" || -z "$$ES03_DATA" || -z "$$ES_BACKUP" ]]; then
+		echo "Missing ES01_DATA, ES02_DATA, ES03_DATA, or ES_BACKUP in $(ENV_FILE)"
+		exit 1
+	fi
+	sudo mkdir -p "$$ES01_DATA" "$$ES02_DATA" "$$ES03_DATA" "$$ES_BACKUP"
+	sudo chown -R 1000:0 "$$ES01_DATA" "$$ES02_DATA" "$$ES03_DATA" "$$ES_BACKUP"
+	sudo chmod -R g+rwx "$$ES01_DATA" "$$ES02_DATA" "$$ES03_DATA" "$$ES_BACKUP"
+	@echo "Elasticsearch data directories are ready"
+
+es-build: check-env
+	set -a
+	source $(ENV_FILE)
+	set +a
+	@if [[ -z "$$STACK_VERSION" ]]; then
+		echo "Missing STACK_VERSION in $(ENV_FILE)"
+		exit 1
+	fi
+	docker build \
+	  --build-arg STACK_VERSION=$$STACK_VERSION \
+	  -t $(ES_IMAGE_NAME):$$STACK_VERSION \
+	  -f ES/Dockerfile .
+
+es-bootstrap: check-env network validate es-dirs es-build
 	set -a
 	source $(ENV_FILE)
 	set +a
 	docker stack deploy -c $(ES_BOOTSTRAP_STACK) $(STACK_NAME)
 
-es-up: check-env network validate es-build
+es-up: check-env network validate es-dirs es-build
 	set -a
 	source $(ENV_FILE)
 	set +a
@@ -189,20 +215,6 @@ vault-vars: check-env
 	  -H "X-Vault-Token: $$VAULT_TOKEN" \
 	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH")
 
-
-es-build: check-env
-	set -a
-	source $(ENV_FILE)
-	set +a
-	@if [[ -z "$$STACK_VERSION" ]]; then
-		echo "Missing STACK_VERSION in $(ENV_FILE)"
-		exit 1
-	fi
-	docker build \
-	  --build-arg STACK_VERSION=$$STACK_VERSION \
-	  -t esiem/elasticsearch-vault:$$STACK_VERSION \
-	  -f ES/Dockerfile .
-
 # Backward compatibility
 bootstrap: es-bootstrap
 up: es-up
@@ -230,7 +242,6 @@ es-setup: check-env mgmt-build
 	  -e VAULT_TOKEN=$$VAULT_TOKEN \
 	  -e VAULT_SECRET_PATH=$$VAULT_SECRET_PATH \
 	  $(MGMT_IMAGE_NAME):latest
-
 
 kibana-build: check-env
 	set -a
