@@ -100,62 +100,23 @@ def update_and_schedule_jobs():
     return current_jobs
 
 
-def run_script(**job_config):
-    job_config = dict(job_config)  # avoid mutating APScheduler's stored kwargs
-
-    script_name = job_config.pop("script", "")
-    vault_env = job_config.pop("vault_env", {})
-
-    if not script_name:
-        logger.error("Task is missing script name")
-        return
-
+def run_script(**kwargs):
+    script_name = kwargs.get('script', '')
+    # Remove 'script' from kwargs to pass the rest as JSON
+    kwargs.pop('script', None)
+    # Convert the remaining kwargs to JSON
+    kwargs_json = json.dumps(kwargs)
+    
     try:
-        secrets = get_vault_secrets()
-
-        child_env = os.environ.copy()
-
-        missing_secrets = []
-
-        for env_var_name, vault_secret_name in vault_env.items():
-            secret_value = secrets.get(vault_secret_name)
-
-            if not secret_value:
-                missing_secrets.append(vault_secret_name)
-                continue
-
-            child_env[env_var_name] = str(secret_value)
-
-        if missing_secrets:
-            logger.error(
-                "Task %s missing required Vault secrets: %s",
-                script_name,
-                ", ".join(missing_secrets)
-            )
-            return
-
-        kwargs_json = json.dumps(job_config)
-
-        logger.info(
-            "Running script: %s with task parameters: %s",
-            script_name,
-            list(job_config.keys())
-        )
-
-        subprocess.run(
-            [sys.executable, script_name, kwargs_json],
-            check=True,
-            env=child_env
-        )
-
+        logger.info("Running script: %s with kwargs: %s", script_name, kwargs)
+        # Pass the JSON string as a single command-line argument after encoding it to handle special characters
+        subprocess.run(['python', script_name, kwargs_json], check=True)
     except subprocess.CalledProcessError as e:
         logger.exception("Error running script %s: %s", script_name, e)
-
     except Exception as e:
-        logger.exception("Unexpected error running script %s: %s", script_name, e)
+        logger.exception("Unexpected error: %s", e)
+    logger.info("Completed script: %s", script_name)
 
-    finally:
-        logger.info("Completed script: %s", script_name)
 
 
 def schedule_tasks(scheduler, task_config):
