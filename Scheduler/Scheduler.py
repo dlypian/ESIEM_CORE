@@ -4,6 +4,7 @@ import time
 import json
 import subprocess
 import os
+import sys
 from elasticsearch import Elasticsearch
 import logging
 from logging.handlers import RotatingFileHandler
