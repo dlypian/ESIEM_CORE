@@ -471,11 +471,6 @@ def main():
 
     while True:
         try:
-            logger.info("VAULT_REFRESH_START")
-            secrets = get_vault_secrets(force_refresh=True)
-            logger.info("VAULT_REFRESH_OK keys_count=%d", len(secrets))
-
-            logger.info("TASK_REFRESH_START")
             task_config = fetch_tasks_from_elasticsearch()
 
             logger.info("TASK_CONFIG count=%d", len(task_config))
