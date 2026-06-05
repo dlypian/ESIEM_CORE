@@ -1,4 +1,4 @@
-FROM python:3.9
+FROM python:3.12
 
 WORKDIR /Scheduler
 
@@ -13,7 +13,8 @@ RUN apt-get update && \
 
 COPY requirements.txt .
 
-RUN pip install --default-timeout=300 --retries=5 -r requirements.txt
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --default-timeout=300 --retries=5 -r requirements.txt
 
 COPY . .
 
