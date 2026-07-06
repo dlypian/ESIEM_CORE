@@ -20,3 +20,6 @@ EOF
 
 Scheduler/Tasks/
 Scheduler/ESIEM_Tasks/
+
+Logstash/ilm/*
+!Logstash/ilm/.gitkeep
