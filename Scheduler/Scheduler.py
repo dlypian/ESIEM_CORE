@@ -298,19 +298,22 @@ def run_script(**job_config):
 
         if result.returncode == 0:
             logger.info(
-                "JOB_END task=%s script=%s returncode=%s elapsed_seconds=%.1f",
+                "JOB_END task=%s script=%s returncode=%s elapsed_seconds=%.1f stdout=%s",
                 task_name,
                 script_name,
                 result.returncode,
                 elapsed,
+                clean_error(result.stdout),
             )
         else:
             logger.error(
-                "JOB_FAILED task=%s script=%s returncode=%s elapsed_seconds=%.1f",
+                "JOB_FAILED task=%s script=%s returncode=%s elapsed_seconds=%.1f stdout=%s stderr=%s",
                 task_name,
                 script_name,
                 result.returncode,
                 elapsed,
+                clean_error(result.stdout),
+                clean_error(result.stderr),
             )
 
     except Exception as error:
