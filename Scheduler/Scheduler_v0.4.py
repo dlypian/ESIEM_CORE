@@ -290,8 +290,6 @@ def run_script(**job_config):
             [sys.executable, script_name, kwargs_json],
             check=False,
             env=child_env,
-            capture_output=True,
-            text=True,
         )
 
         elapsed = (datetime.now(timezone.utc) - start).total_seconds()
