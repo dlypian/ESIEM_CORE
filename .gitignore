@@ -23,3 +23,5 @@ Scheduler/ESIEM_Tasks/
 
 Logstash/ilm/*
 !Logstash/ilm/.gitkeep
+
+Logstash/pipeline/EnrichmentFiles/Netflow_Interface_Dictionaries.json
