@@ -1,8 +1,8 @@
 import json
-import os
 import threading
 import time
 import urllib.request
+from pathlib import Path
 from typing import Dict, Optional
 
 
@@ -11,18 +11,27 @@ _CACHE: Dict[str, str] = {}
 _LAST_SYNC = 0
 _CACHE_TTL_SECONDS = 60
 
+_DOCKER_SECRETS_DIR = Path("/run/secrets")
 
-def _require_env(name: str) -> str:
-    value = os.getenv(name)
+
+def _read_docker_secret(name: str) -> str:
+    path = _DOCKER_SECRETS_DIR / name
+
+    if not path.is_file():
+        raise RuntimeError(f"Docker secret not found: {path}")
+
+    value = path.read_text(encoding="utf-8").strip()
+
     if not value:
-        raise RuntimeError(f"{name} is required")
+        raise RuntimeError(f"Docker secret is empty: {name}")
+
     return value
 
 
 def fetch_vault_secrets() -> Dict[str, str]:
-    vault_addr = _require_env("VAULT_ADDR").rstrip("/")
-    vault_token = _require_env("VAULT_TOKEN")
-    vault_secret_path = _require_env("VAULT_SECRET_PATH").lstrip("/")
+    vault_addr = _read_docker_secret("vault_addr").rstrip("/")
+    vault_token = _read_docker_secret("vault_token")
+    vault_secret_path = _read_docker_secret("vault_secret_path").lstrip("/")
 
     url = f"{vault_addr}/v1/{vault_secret_path}"
 
