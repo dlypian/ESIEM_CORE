@@ -3,9 +3,9 @@ set -euo pipefail
 
 echo "Fetching Elasticsearch credentials from Vault..."
 
-: "${VAULT_ADDR:?VAULT_ADDR is required}"
-: "${VAULT_TOKEN:?VAULT_TOKEN is required}"
-: "${VAULT_SECRET_PATH:?VAULT_SECRET_PATH is required}"
+VAULT_ADDR="$(cat /run/secrets/vault_addr)"
+VAULT_SECRET_PATH="$(cat /run/secrets/vault_secret_path)"
+VAULT_TOKEN="$(cat /run/secrets/vault_token)"
 
 VAULT_JSON="$(curl -fsS \
   -H "X-Vault-Token: ${VAULT_TOKEN}" \
