@@ -4,8 +4,14 @@ services:
   kibana:
     image: esiem/kibana-vault:${STACK_VERSION}
     hostname: kibana.${CLIENT_DOMAIN}
+
     networks:
       - ESIEM_Network
+
+    secrets:
+      - vault_addr
+      - vault_secret_path
+      - vault_token
 
     volumes:
       - kibanadata:/usr/share/kibana/data
@@ -22,11 +28,6 @@ services:
     environment:
       - SERVERNAME=kibana
       - ELASTICSEARCH_USERNAME=kibana_system
-
-      # Vault bootstrap values
-      - VAULT_ADDR=${VAULT_ADDR}
-      - VAULT_TOKEN=${VAULT_TOKEN}
-      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
 
       # Non-secret deployment values
       - CLIENT_DOMAIN=${CLIENT_DOMAIN}
@@ -70,3 +71,13 @@ networks:
 
 volumes:
   kibanadata:
+
+secrets:
+  vault_addr:
+    external: true
+
+  vault_secret_path:
+    external: true
+
+  vault_token:
+    external: true

@@ -4,21 +4,27 @@ services:
   es01:
     image: esiem/elasticsearch-vault:${STACK_VERSION}
     hostname: es01.${CLIENT_DOMAIN}
+
     networks:
       - ESIEM_Network
+
+    secrets:
+      - vault_addr
+      - vault_secret_path
+      - vault_token
+
     volumes:
       - ${ES01_DATA}:/usr/share/elasticsearch/data
       - ${CERTS_DIR}:/usr/share/elasticsearch/config/certs:ro
       - ${ES_BACKUP}:/usr/share/elasticsearch/backups
+
     ports:
       - target: 9200
         published: ${ES_PORT}
         protocol: tcp
         mode: host
+
     environment:
-      - VAULT_ADDR=${VAULT_ADDR}
-      - VAULT_TOKEN=${VAULT_TOKEN}
-      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
       - node.name=es01.${CLIENT_DOMAIN}
       - node.roles=master,ingest,remote_cluster_client
       - cluster.name=${CLUSTER_NAME}
@@ -40,10 +46,12 @@ services:
       - xpack.license.self_generated.type=${LICENSE}
       - ES_JAVA_OPTS=${ES01_JAVA_OPTS}
       - TZ=${TZ}
+
     ulimits:
       memlock:
         soft: -1
         hard: -1
+
     deploy:
       replicas: 1
       restart_policy:
@@ -54,25 +62,35 @@ services:
       resources:
         limits:
           memory: ${ES01_MEM_LIMIT}
+
     healthcheck:
-      test: ["CMD-SHELL", "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
       interval: 15s
       timeout: 10s
       retries: 60
 
   es02:
-    image: esiem/elasticsearch-vault:${STACK_VERSION} 
+    image: esiem/elasticsearch-vault:${STACK_VERSION}
     hostname: es02.${CLIENT_DOMAIN}
+
     networks:
       - ESIEM_Network
+
+    secrets:
+      - vault_addr
+      - vault_secret_path
+      - vault_token
+
     volumes:
       - ${ES02_DATA}:/usr/share/elasticsearch/data
       - ${CERTS_DIR}:/usr/share/elasticsearch/config/certs:ro
       - ${ES_BACKUP}:/usr/share/elasticsearch/backups
+
     environment:
-      - VAULT_ADDR=${VAULT_ADDR}
-      - VAULT_TOKEN=${VAULT_TOKEN}
-      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
       - node.name=es02.${CLIENT_DOMAIN}
       - node.roles=master,data,remote_cluster_client
       - cluster.name=${CLUSTER_NAME}
@@ -94,10 +112,12 @@ services:
       - xpack.license.self_generated.type=${LICENSE}
       - ES_JAVA_OPTS=${ES02_JAVA_OPTS}
       - TZ=${TZ}
+
     ulimits:
       memlock:
         soft: -1
         hard: -1
+
     deploy:
       replicas: 1
       restart_policy:
@@ -108,8 +128,13 @@ services:
       resources:
         limits:
           memory: ${ES02_MEM_LIMIT}
+
     healthcheck:
-      test: ["CMD-SHELL", "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
       interval: 15s
       timeout: 10s
       retries: 60
@@ -117,16 +142,21 @@ services:
   es03:
     image: esiem/elasticsearch-vault:${STACK_VERSION}
     hostname: es03.${CLIENT_DOMAIN}
+
     networks:
       - ESIEM_Network
+
+    secrets:
+      - vault_addr
+      - vault_secret_path
+      - vault_token
+
     volumes:
       - ${ES03_DATA}:/usr/share/elasticsearch/data
       - ${CERTS_DIR}:/usr/share/elasticsearch/config/certs:ro
       - ${ES_BACKUP}:/usr/share/elasticsearch/backups
+
     environment:
-      - VAULT_ADDR=${VAULT_ADDR}
-      - VAULT_TOKEN=${VAULT_TOKEN}
-      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
       - node.name=es03.${CLIENT_DOMAIN}
       - node.roles=master,data,remote_cluster_client
       - cluster.name=${CLUSTER_NAME}
@@ -148,10 +178,12 @@ services:
       - xpack.license.self_generated.type=${LICENSE}
       - ES_JAVA_OPTS=${ES03_JAVA_OPTS}
       - TZ=${TZ}
+
     ulimits:
       memlock:
         soft: -1
         hard: -1
+
     deploy:
       replicas: 1
       restart_policy:
@@ -162,12 +194,27 @@ services:
       resources:
         limits:
           memory: ${ES03_MEM_LIMIT}
+
     healthcheck:
-      test: ["CMD-SHELL", "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'"]
+      test:
+        [
+          "CMD-SHELL",
+          "curl -sk https://localhost:9200 | grep -q 'missing authentication credentials'",
+        ]
       interval: 15s
       timeout: 10s
       retries: 60
 
 networks:
   ESIEM_Network:
+    external: true
+
+secrets:
+  vault_addr:
+    external: true
+
+  vault_secret_path:
+    external: true
+
+  vault_token:
     external: true

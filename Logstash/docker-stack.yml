@@ -7,12 +7,12 @@ services:
     networks:
       - ESIEM_Network
 
-    environment:
-      # Vault bootstrap values
-      - VAULT_ADDR=${VAULT_ADDR}
-      - VAULT_TOKEN=${VAULT_TOKEN}
-      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
+    secrets:
+      - vault_addr
+      - vault_secret_path
+      - vault_token
 
+    environment:
       # Non-secret values
       - CLIENT_DOMAIN=${CLIENT_DOMAIN}
       - ROOT_DOMAIN=${ROOT_DOMAIN}
@@ -124,4 +124,14 @@ services:
 
 networks:
   ESIEM_Network:
+    external: true
+
+secrets:
+  vault_addr:
+    external: true
+
+  vault_secret_path:
+    external: true
+
+  vault_token:
     external: true

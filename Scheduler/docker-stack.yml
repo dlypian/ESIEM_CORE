@@ -4,13 +4,14 @@ services:
   scheduler:
     image: esiem/scheduler-vault:${STACK_VERSION}
     hostname: scheduler.${CLIENT_DOMAIN}
+
     networks:
       - ESIEM_Network
 
-    environment:
-      - VAULT_ADDR=${VAULT_ADDR}
-      - VAULT_TOKEN=${VAULT_TOKEN}
-      - VAULT_SECRET_PATH=${VAULT_SECRET_PATH}
+    secrets:
+      - vault_addr
+      - vault_secret_path
+      - vault_token
 
     volumes:
       - /ESIEM/ESIEM_CORE/Logstash/pipeline/EnrichmentFiles:/usr/share/logstash/pipeline/EnrichmentFiles
@@ -34,4 +35,14 @@ services:
 
 networks:
   ESIEM_Network:
+    external: true
+
+secrets:
+  vault_addr:
+    external: true
+
+  vault_secret_path:
+    external: true
+
+  vault_token:
     external: true
