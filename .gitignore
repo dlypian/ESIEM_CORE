@@ -25,3 +25,5 @@ Logstash/ilm/*
 !Logstash/ilm/.gitkeep
 
 Logstash/pipeline/EnrichmentFiles/Netflow_Interface_Dictionaries.json
+Scheduler/__pycache__/
+*.pyc
