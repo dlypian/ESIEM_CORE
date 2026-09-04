@@ -27,13 +27,16 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate es-dirs es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs scheduler-build scheduler-up scheduler-down scheduler-ps scheduler-logs
+.PHONY: help check-env network validate secrets secrets-list secrets-remove es-dirs es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs scheduler-build scheduler-up scheduler-down scheduler-ps scheduler-logs
 
 help:
 	@echo "Targets:"
 	@echo "  make check-env       - verify .env exists"
 	@echo "  make network         - create shared overlay network if missing"
 	@echo "  make validate        - validate ES stack files"
+	@echo "  make secrets         - create Vault Docker Swarm secrets"
+	@echo "  make secrets-list    - list Docker Swarm secrets"
+	@echo "  make secrets-remove  - remove Vault Docker Swarm secrets"
 	@echo ""
 	@echo "=== ES ==="
 	@echo "  make es-dirs         - create ES host data directories from .env"
@@ -97,6 +100,50 @@ validate: check-env
 	docker compose --env-file $(ENV_FILE) -f $(ES_BOOTSTRAP_STACK) config >/dev/null
 	docker compose --env-file $(ENV_FILE) -f $(ES_STACK) config >/dev/null
 	@echo "ES stack files validate cleanly"
+
+secrets:
+	@read -p "Vault address: " VAULT_ADDR; \
+	read -p "Vault secret path: " VAULT_SECRET_PATH; \
+	read -p "Vault token secret name [vault_token]: " VAULT_TOKEN_SECRET; \
+	VAULT_TOKEN_SECRET=$${VAULT_TOKEN_SECRET:-vault_token}; \
+	read -s -p "Vault token: " VAULT_TOKEN; \
+	echo; \
+	if [[ -z "$$VAULT_ADDR" ]]; then \
+		echo "Vault address cannot be empty"; \
+		exit 1; \
+	fi; \
+	if [[ -z "$$VAULT_SECRET_PATH" ]]; then \
+		echo "Vault secret path cannot be empty"; \
+		exit 1; \
+	fi; \
+	if [[ -z "$$VAULT_TOKEN" ]]; then \
+		echo "Vault token cannot be empty"; \
+		exit 1; \
+	fi; \
+	if docker secret inspect vault_addr >/dev/null 2>&1; then \
+		echo "vault_addr already exists"; \
+	else \
+		printf '%s' "$$VAULT_ADDR" | docker secret create vault_addr -; \
+	fi; \
+	if docker secret inspect vault_secret_path >/dev/null 2>&1; then \
+		echo "vault_secret_path already exists"; \
+	else \
+		printf '%s' "$$VAULT_SECRET_PATH" | docker secret create vault_secret_path -; \
+	fi; \
+	if docker secret inspect "$$VAULT_TOKEN_SECRET" >/dev/null 2>&1; then \
+		echo "$$VAULT_TOKEN_SECRET already exists"; \
+	else \
+		printf '%s' "$$VAULT_TOKEN" | docker secret create "$$VAULT_TOKEN_SECRET" -; \
+	fi; \
+	echo "Docker Swarm Vault secrets are ready."; \
+	echo "Token secret name: $$VAULT_TOKEN_SECRET"
+
+secrets-list:
+	@docker secret ls
+
+secrets-remove:
+	@docker secret rm vault_addr vault_secret_path vault_token 2>/dev/null || true
+	@echo "Default Vault Docker Swarm secrets removed if present"
 
 es-dirs: check-env
 	set -a
