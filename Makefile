@@ -27,7 +27,7 @@ export $(shell sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p' $(ENV_FILE) 2>/dev
 
 ES_URL := https://localhost:9200
 
-.PHONY: help check-env network validate secrets secrets-list secrets-remove es-dirs es-bootstrap es-up wait health nodes shards down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs scheduler-build scheduler-up scheduler-down scheduler-ps scheduler-logs
+.PHONY: help check-env network validate secrets secrets-list secrets-remove status es-dirs es-bootstrap es-up wait health nodes shards es-down ps logs logs-es02 logs-es03 clean-history es-build vault-vars mgmt-build es-setup kibana-build kibana-up kibana-down kibana-ps kibana-logs logstash-build logstash-up logstash-down logstash-ps logstash-logs scheduler-build scheduler-up scheduler-down scheduler-ps scheduler-logs
 
 help:
 	@echo "Targets:"
@@ -37,6 +37,7 @@ help:
 	@echo "  make secrets         - create Vault Docker Swarm secrets"
 	@echo "  make secrets-list    - list Docker Swarm secrets"
 	@echo "  make secrets-remove  - remove Vault Docker Swarm secrets"
+	@echo "  make status          - show status of all ESIEM stacks and Swarm nodes"
 	@echo ""
 	@echo "=== ES ==="
 	@echo "  make es-dirs         - create ES host data directories from .env"
@@ -52,7 +53,7 @@ help:
 	@echo "  make logs            - tail logs for es01"
 	@echo "  make logs-es02       - tail logs for es02"
 	@echo "  make logs-es03       - tail logs for es03"
-	@echo "  make down            - remove the ES stack"
+	@echo "  make es-down         - remove the ES stack
 	@echo "  make clean-history   - remove ES stack and bring it back with normal stack"
 	@echo "  make vault-vars      - pull and print variables from Vault"
 	@echo ""
@@ -183,22 +184,69 @@ es-up: check-env network validate es-dirs es-build
 	set +a
 	docker stack deploy -c $(ES_STACK) $(STACK_NAME)
 
-wait: check-env
-	set -a
-	source $(ENV_FILE)
-	set +a
-	@if [[ -z "$$VAULT_ADDR" || -z "$$VAULT_TOKEN" || -z "$$VAULT_SECRET_PATH" ]]; then
-		echo "Missing VAULT_ADDR, VAULT_TOKEN, or VAULT_SECRET_PATH in $(ENV_FILE)"
-		exit 1
-	fi
-	ELASTIC_PASSWORD="$$(curl -s \
-	  -H "X-Vault-Token: $$VAULT_TOKEN" \
-	  "$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH" | $(VAULT_GET_PY))"
-	echo "Waiting for Elasticsearch on $(ES_URL) ..."
-	until curl -k -s -u elastic:$$ELASTIC_PASSWORD $(ES_URL) >/dev/null 2>&1; do
-		sleep 5
-	done
-	echo "Elasticsearch is responding"
+wait:
+	@set -e; \
+	echo "Locating Elasticsearch es01 container..."; \
+	ES01_CID=$$(docker ps \
+		--filter label=com.docker.swarm.service.name=$(STACK_NAME)_es01 \
+		--format '{{.ID}}' | head -n1); \
+	if [ -z "$$ES01_CID" ]; then \
+		echo "ERROR: es01 container is not running"; \
+		exit 1; \
+	fi; \
+	echo "Using container $$ES01_CID"; \
+	docker exec "$$ES01_CID" sh -c '\
+		set -e; \
+		\
+		VAULT_ADDR=$$(cat /run/secrets/vault_addr); \
+		VAULT_SECRET_PATH=$$(cat /run/secrets/vault_secret_path); \
+		VAULT_TOKEN=$$(cat /run/secrets/vault_token); \
+		\
+		if [ -z "$$VAULT_ADDR" ] || [ -z "$$VAULT_SECRET_PATH" ] || [ -z "$$VAULT_TOKEN" ]; then \
+			echo "ERROR: One or more Vault Docker secrets are empty"; \
+			exit 1; \
+		fi; \
+		\
+		echo "Docker secrets available"; \
+		echo "Retrieving Elasticsearch credentials from Vault..."; \
+		VAULT_RESPONSE=$$(curl -skf \
+			-H "X-Vault-Token: $$VAULT_TOKEN" \
+			"$$VAULT_ADDR/v1/$$VAULT_SECRET_PATH"); \
+		\
+		ELASTIC_PASSWORD=$$(printf "%s" "$$VAULT_RESPONSE" | \
+			sed -n '"'"'s/.*"ELASTIC_PASSWORD"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p'"'"'); \
+		\
+		if [ -z "$$ELASTIC_PASSWORD" ]; then \
+			echo "ERROR: ELASTIC_PASSWORD was not found in Vault response"; \
+			exit 1; \
+		fi; \
+		\
+		echo "Elasticsearch password retrieved"; \
+		echo "Waiting for Elasticsearch to respond..."; \
+		\
+		COUNT=0; \
+		MAX_ATTEMPTS=60; \
+		until curl -skf \
+			-u "elastic:$$ELASTIC_PASSWORD" \
+			"https://localhost:9200" \
+			>/dev/null 2>&1; do \
+			COUNT=$$((COUNT + 1)); \
+			if [ "$$COUNT" -ge "$$MAX_ATTEMPTS" ]; then \
+				echo "ERROR: Elasticsearch did not respond after $$MAX_ATTEMPTS attempts"; \
+				exit 1; \
+			fi; \
+			echo "Waiting for Elasticsearch... ($$COUNT/$$MAX_ATTEMPTS)"; \
+			sleep 5; \
+		done; \
+		\
+		echo "Elasticsearch is responding"; \
+		echo ""; \
+		echo "Cluster health:"; \
+		curl -skf \
+			-u "elastic:$$ELASTIC_PASSWORD" \
+			"https://localhost:9200/_cluster/health?pretty"; \
+		echo ""; \
+	'
 
 health: check-env
 	set -a
@@ -241,7 +289,7 @@ logs-es02:
 logs-es03:
 	docker service logs $(STACK_NAME)_es03 --tail 100 -f
 
-down:
+es-down:
 	docker stack rm $(STACK_NAME)
 
 clean-history: down
@@ -380,3 +428,27 @@ scheduler-ps:
 
 scheduler-logs:
 	docker service logs $(SCHEDULER_STACK_NAME)_scheduler --tail 100 -f
+
+status:
+	@echo "=== Docker Stacks ==="
+	docker stack ls
+	@echo
+
+	@echo "=== Elasticsearch ==="
+	docker stack services $(STACK_NAME) || true
+	@echo
+
+	@echo "=== Kibana ==="
+	docker stack services $(KIBANA_STACK_NAME) || true
+	@echo
+
+	@echo "=== Logstash ==="
+	docker stack services $(LOGSTASH_STACK_NAME) || true
+	@echo
+
+	@echo "=== Scheduler ==="
+	docker stack services $(SCHEDULER_STACK_NAME) || true
+	@echo
+
+	@echo "=== Swarm Nodes ==="
+	docker node ls || true

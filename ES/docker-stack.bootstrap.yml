@@ -59,7 +59,7 @@ services:
         condition: any
       placement:
         constraints:
-          - node.hostname == ${SWARM_HOSTNAME}
+          - node.hostname == ${SWARM_HOSTNAME_ES01}
       resources:
         limits:
           memory: ${ES01_MEM_LIMIT}
@@ -126,7 +126,7 @@ services:
         condition: any
       placement:
         constraints:
-          - node.hostname == ${SWARM_HOSTNAME}
+          - node.hostname == ${SWARM_HOSTNAME_ES02}
       resources:
         limits:
           memory: ${ES02_MEM_LIMIT}
@@ -193,7 +193,7 @@ services:
         condition: any
       placement:
         constraints:
-          - node.hostname == ${SWARM_HOSTNAME}
+          - node.hostname == ${SWARM_HOSTNAME_ES03}
       resources:
         limits:
           memory: ${ES03_MEM_LIMIT}
