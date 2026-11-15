@@ -1,0 +1,33 @@
+{
+  "index_patterns": ["fnet_all-*"],
+  "order": 250,
+  "settings": {},
+  "mappings": {
+    "dynamic": true,
+    "properties": {
+      "srcip": {
+        "type": "ip",
+        "ignore_malformed": true
+      },
+      "dstip": {
+        "type": "ip",
+        "ignore_malformed": true
+      },
+      "srcport": {
+        "type": "integer",
+        "ignore_malformed": true
+      },
+      "dstport": {
+        "type": "integer",
+        "ignore_malformed": true
+      },
+      "policyid": {
+        "type": "integer",
+        "ignore_malformed": true
+      },
+      "action": {
+        "type": "keyword"
+      }
+    }
+  }
+}

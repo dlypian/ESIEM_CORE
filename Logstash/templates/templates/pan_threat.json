@@ -1,0 +1,70 @@
+
+{
+  "index_patterns": ["pan_threat-*"],
+  "order": 250,
+  "settings": {},
+  "mappings": {
+    "dynamic": true,
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      },
+      "@version": {
+        "type": "keyword"
+      },
+      "Destination_Address": {
+        "type": "ip"
+      },
+      "Source_Address": {
+        "type": "ip"
+      },
+      "NAT_Source_IP": {
+        "type": "ip"
+      },
+      "NAT_Destination_IP": {
+        "type": "ip"
+      },
+      "host": {
+        "type": "ip"
+      },
+      "Sequence_Number": {
+        "type": "text"
+      },
+      "Destination_Address_geo": {
+        "type": "object",
+        "dynamic": true,
+        "properties": {
+          "ip": {
+            "type": "ip"
+          },
+          "latitude": {
+            "type": "half_float"
+          },
+          "location": {
+            "type": "geo_point"
+          },
+          "longitude": {
+            "type": "half_float"
+          }
+        }
+      },
+      "Source_Address_geo": {
+        "type": "object",
+        "properties": {
+          "ip": {
+            "type": "ip"
+          },
+          "latitude": {
+            "type": "half_float"
+          },
+          "location": {
+            "type": "geo_point"
+          },
+          "longitude": {
+            "type": "half_float"
+          }
+        }
+      }
+    }
+  }
+}

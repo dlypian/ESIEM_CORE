@@ -1,0 +1,58 @@
+{
+  "template": "windns-*",
+  "version": 1,
+  "order": 0,
+  "settings": {
+    "index.refresh_interval": "30s"
+  },
+  "mappings": {
+    "dynamic_templates": [
+      {
+        "strings_as_text_and_keyword": {
+          "match_mapping_type": "string",
+          "mapping": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          }
+        }
+      },
+      {
+        "long_numbers": {
+          "match_mapping_type": "string",
+          "match": "*",
+          "unmatch": ["message", "Message", "*ip*", "*IP*", "*fqdn*"],
+          "mapping": {
+            "type": "long"
+          }
+        }
+      },
+      {
+        "integers": {
+          "match_mapping_type": "long",
+          "mapping": {
+            "type": "integer"
+          }
+        }
+      },
+      {
+        "dates": {
+          "match": "*Time",
+          "mapping": {
+            "type": "date"
+          }
+        }
+      }
+    ],
+    "properties": {
+      "@timestamp": {
+        "type": "date"
+      }
+    }
+  },
+  "aliases": {}
+}
