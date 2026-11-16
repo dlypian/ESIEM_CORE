@@ -53,7 +53,7 @@ help:
 	@echo "  make logs            - tail logs for es01"
 	@echo "  make logs-es02       - tail logs for es02"
 	@echo "  make logs-es03       - tail logs for es03"
-	@echo "  make es-down         - remove the ES stack
+	@echo "  make es-down         - remove the ES stack"
 	@echo "  make clean-history   - remove ES stack and bring it back with normal stack"
 	@echo "  make vault-vars      - pull and print variables from Vault"
 	@echo ""
